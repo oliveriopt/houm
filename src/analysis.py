@@ -16,7 +16,7 @@ class Analysis:
         self.data_visits = pd.DataFrame()
         self.visites_done = None
 
-    def __read_data(self)->None:
+    def __read_data(self) -> None:
         """
         Read files from data file, information for visits, users and properties
         :return: None
@@ -25,27 +25,46 @@ class Analysis:
         self.data_users = pd.read_csv(filepath_or_buffer=self.path + config.users)
         self.data_properties = pd.read_csv(filepath_or_buffer=self.path + config.properties)
 
-    def __first_question(self)->int:
+    def __first_question(self) -> int:
         """
-        Calculate
+        Calculate the first question
         :return:
         """
         self.visites_done = len(self.data_visits.loc[self.data_visits["status"]==vars.status].axes[0])
         print(self.visites_done)
 
-    def __second_question(self):
+    def __second_question(self) -> int:
+        """
+        Calcualte second question
+        :return:
+        """
         number_users = len(list(self.data_users["user_id"]))
         df = pd.merge(self.data_properties,self.data_users,how="inner",on="property_id")
         print(df)
 
 
-    def __third_question(self, user_id:str):
+    def __third_question(self, user_id:str) -> float:
+        """
+        Calculate thord question
+        :param user_id:
+        :return:
+        """
 
         def which_property(user_id=user_id) -> list:
+            """
+            Select list of properties for a determined user
+            :param user_id:
+            :return:
+            """
             list_properties = self.data_users.loc[self.data_users["user_id"]==user_id]["property_id"].values.tolist()
             return list_properties
 
-        def take_information(list_properties:list):
+        def take_information(list_properties:list) -> list:
+            """
+            Select information for a list of properties: latitude, longitude,begin_date and end_date
+            :param list_properties:
+            :return:
+            """
             list_informations = []
             df_dates = pd.DataFrame()
             latitud, longitud = None, None
@@ -55,40 +74,50 @@ class Analysis:
 
                 df_dates = self.data_visits.loc[(self.data_visits["property_id"] == item) & (self.data_visits[
                                                                                               "status"] ==
-                                                                                          "Done")][["begin_date",
+                                                                                          vars.status)][["begin_date",
                                                                                                "end_date"]]
             for index, rows in df_dates.iterrows():
                 list_informations.append([latitud, longitud, rows["begin_date"], rows["end_date"]])
             return  list_informations
 
-        def connect_api(list_information:list):
+        def connect_api(list_information:list) -> list:
+            """
+            Given a list of information, requst to the api the weather
+            :param list_information:
+            :return:
+            """
             list_json=[]
             apic = APIConnect(key=config.API_KEY, base_url=config.BaseURL)
             for item in list_information:
-
                 apic.run(latitud=str(item[0]), longitud=str(item[1]), begin_date=str(item[2]),
                      end_date=str(item[3]))
                 list_json.append(apic.response_json)
             return list_json
 
-        def extract_temp(list_json:list):
+        def extract_temp(list_json:list) -> float:
             temp=[]
             for item in list_json:
                 for day in item["days"]:
                     temp.append(day["temp"])
             avg = np.average(np.array(temp))
-            return avg
+            return round(avg,2)
 
+        ### RUN THE THRID QUESTIONS####
         list_properties = which_property(user_id=user_id)
         list_informations = take_information(list_properties=list_properties)
         list_json = connect_api(list_information=list_informations)
         average = extract_temp(list_json)
+        return average
 
-    def __fourth_questions(self):
+    def __fourth_questions(self) -> float:
+        """
+
+        :return:
+        """
 
         def take_information() -> list:
             list_informations =[]
-            df_visits = self.data_visits.loc[self.data_visits["status"]=="Done"]
+            df_visits = self.data_visits.loc[self.data_visits["status"]==vars.status]
             df = pd.merge(df_visits, self.data_properties, how="inner", on="property_id")
             df = df[["latitude","longitude","begin_date","end_date"]].reset_index(drop=True)
             print(df)
@@ -119,22 +148,30 @@ class Analysis:
         list_informations = take_information()
         list_json = connect_api(list_information=list_informations)
         average = extract_temp(list_json)
-        print(average)
+        return average
 
-    def __fifth_question(self):
+    def __fifth_question(self) -> float:
 
         def take_information() -> list:
+            """
+            Select information from sources tables and merge dataframes to have the answers
+            :return:
+            """
             list_informations =[]
-            df_visits = self.data_visits.loc[self.data_visits["status"]=="Done"]
-            df_properties = self.data_properties.loc[self.data_properties["localidad"] == "Suba"]
+            df_visits = self.data_visits.loc[self.data_visits["status"]==vars.status]
+            df_properties = self.data_properties.loc[self.data_properties["localidad"] == vars.localidad]
             df = pd.merge(df_visits,df_properties, on="property_id")
             df = df[["latitude","longitude","begin_date","end_date"]].reset_index(drop=True)
-            print(df)
             for index, rows in df.iterrows():
                 list_informations.append([rows["latitude"], rows["longitude"], rows["begin_date"], rows["end_date"]])
             return list_informations
 
-        def connect_api(list_information:list):
+        def connect_api(list_information:list) -> list:
+            """
+            REquest api from list of select information
+            :param list_information:
+            :return:
+            """
             list_json=[]
             apic = APIConnect(key=config.API_KEY, base_url=config.BaseURL)
             for item in list_information:
@@ -143,13 +180,18 @@ class Analysis:
                 list_json.append(apic.response_json)
             return list_json
 
-        def extract_temp(list_json:list):
+        def extract_temp(list_json:list) -> float:
+            """
+            Extract temperature from the response
+            :param list_json:
+            :return:
+            """
             temp=[]
             for item in list_json:
                 for day in item["days"]:
                     temp.append(day["temp"])
             avg = np.average(np.array(temp))
-            return avg
+            return round(avg,1)
 
         list_informations = take_information()
         list_json = connect_api(list_information=list_informations)
