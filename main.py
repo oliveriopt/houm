@@ -5,7 +5,7 @@ from src.utils.get_api import get_api_keyboard
 def text_results(first:int, second:float, third:float, fourth:float, fifth:float) -> None:
 
     print("¿Cuántas visitas se realizaron en total?")
-    print("EN total Se realizaron " + str(first) + " visitas.\n\n")
+    print("En total se realizaron " + str(first) + " visitas.\n\n")
     print("¿Cuál es el promedio de propiedades por propietario?")
     print("Existen " + str(second) + " propiedades por propietario.\n\n")
     print("¿Cuál era la temperatura promedio de todas las visitas que se realizó en la propiedad del propietario con ID 2?")
