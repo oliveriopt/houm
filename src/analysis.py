@@ -9,12 +9,13 @@ import numpy as np
 
 class Analysis:
 
-    def __init__(self):
+    def __init__(self, key_api:str):
+        self.key_api = key_api
         self.path = str(get_project_root())
         self.data_properties = pd.DataFrame()
         self.data_users = pd.DataFrame()
         self.data_visits = pd.DataFrame()
-        self.visites_done = None
+
 
     def __read_data(self) -> None:
         """
@@ -30,17 +31,18 @@ class Analysis:
         Calculate the first question
         :return:
         """
-        self.visites_done = len(self.data_visits.loc[self.data_visits["status"]==vars.status].axes[0])
-        print(self.visites_done)
+        return len(self.data_visits.loc[self.data_visits["status"] == vars.status].axes[0])
 
-    def __second_question(self) -> int:
+
+    def __second_question(self) -> float:
         """
         Calcualte second question
         :return:
         """
-        number_users = len(list(self.data_users["user_id"]))
-        df = pd.merge(self.data_properties,self.data_users,how="inner",on="property_id")
-        print(df)
+        number_users = len(list(set(self.data_users["user_id"].to_list())))
+        number_properties = self.data_properties.shape[0]
+        return round(number_properties/number_users,2)
+
 
 
     def __third_question(self, user_id:str) -> float:
@@ -50,13 +52,13 @@ class Analysis:
         :return:
         """
 
-        def which_property(user_id=user_id) -> list:
+        def which_property(user_id:int) -> list:
             """
             Select list of properties for a determined user
             :param user_id:
             :return:
             """
-            list_properties = self.data_users.loc[self.data_users["user_id"]==user_id]["property_id"].values.tolist()
+            list_properties = self.data_users.loc[self.data_users["user_id"] == user_id]["property_id"].values.tolist()
             return list_properties
 
         def take_information(list_properties:list) -> list:
@@ -86,9 +88,9 @@ class Analysis:
             :param list_information:
             :return:
             """
-            list_json=[]
-            apic = APIConnect(key=config.API_KEY, base_url=config.BaseURL)
-            for item in list_information:
+            list_json = []
+            apic = APIConnect(key=self.key_api, base_url=config.BaseURL)
+            for item in list_information :
                 apic.run(latitud=str(item[0]), longitud=str(item[1]), begin_date=str(item[2]),
                      end_date=str(item[3]))
                 list_json.append(apic.response_json)
@@ -111,25 +113,32 @@ class Analysis:
 
     def __fourth_questions(self) -> float:
         """
-
+        Calculate 4th questions
         :return:
         """
 
         def take_information() -> list:
+            """
+            Select information from sources tables visit and properties
+            :return:
+            """
             list_informations =[]
-            df_visits = self.data_visits.loc[self.data_visits["status"]==vars.status]
+            df_visits = self.data_visits.loc[self.data_visits["status"] == vars.status]
             df = pd.merge(df_visits, self.data_properties, how="inner", on="property_id")
             df = df[["latitude","longitude","begin_date","end_date"]].reset_index(drop=True)
-            print(df)
             for index, rows in df.iterrows():
                 list_informations.append([rows["latitude"], rows["longitude"], rows["begin_date"], rows["end_date"]])
-            return  list_informations[:5]
+            return list_informations
 
-        def connect_api(list_information:list):
+        def connect_api(list_information:list) -> list:
+            """
+
+            :param list_information:
+            :return:
+            """
             list_json=[]
-            apic = APIConnect(key=config.API_KEY, base_url=config.BaseURL)
+            apic = APIConnect(key=self.key_api, base_url=config.BaseURL)
             for item in list_information:
-
                 apic.run(latitud=str(item[0]), longitud=str(item[1]), begin_date=str(item[2]),
                      end_date=str(item[3]))
                 list_json.append(apic.response_json)
@@ -143,7 +152,7 @@ class Analysis:
                        if day['preciptype'][0] == 'rain':
                            temp.append(day["temp"])
             avg = np.average(np.array(temp))
-            return avg
+            return round(avg,2)
 
         list_informations = take_information()
         list_json = connect_api(list_information=list_informations)
@@ -173,7 +182,7 @@ class Analysis:
             :return:
             """
             list_json=[]
-            apic = APIConnect(key=config.API_KEY, base_url=config.BaseURL)
+            apic = APIConnect(key=self.key_api, base_url=config.BaseURL)
             for item in list_information:
                 apic.run(latitud=str(item[0]), longitud=str(item[1]), begin_date=str(item[2]),
                      end_date=str(item[3]))
@@ -196,16 +205,22 @@ class Analysis:
         list_informations = take_information()
         list_json = connect_api(list_information=list_informations)
         average = extract_temp(list_json)
-        print(average)
+        return average
 
     def run(self):
         self.__read_data()
-       # self.__first_question()
-       # self.__second_question()
-       # self.__third_question(user_id=2)
-       # self.__fourth_questions()
-        self.__fifth_question()
+        print("Resolviendo primera pregunta")
+        first = self.__first_question()
+        print("Resolviendo segunda pregunta")
+        second = self.__second_question()
+        print("Resolviendo tercera pregunta")
+        third = self.__third_question(user_id=2)
+        print("Resolviendo cuarta pregunta")
+        fourth = self.__fourth_questions()
+        print("Resolviendo quinta pregunta")
+        fifth = self.__fifth_question()
 
-analysis = Analysis()
-analysis.run()
+        return first, second, third, fourth, fifth
+
+
 

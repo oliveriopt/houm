@@ -29,9 +29,16 @@ class APIConnect:
         :param end_date: str
         :return: json
         """
-        response = requests.get(self.__create_string_request(latitud=latitud, longitud=longitud, begin_date=begin_date,
+        try:
+            response = requests.get(self.__create_string_request(latitud=latitud, longitud=longitud, begin_date=begin_date,
                                             end_date=end_date))
-        self.response_json = response.json()
+            if response.status_code == 200:
+                self.response_json = response.json()
+            else:
+                print("ERROR FROM API")
+        except Exception as e:
+                print("There was an error: ", e)
+
 
 
 
